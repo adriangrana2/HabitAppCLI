@@ -13,6 +13,31 @@ LOG_STATUSES = {"success", "fail", "skip"}
 LOG_STATUS_ORDER = ["success", "fail", "skip"]
 
 
+def new_id() -> str:
+    """Erzeugt eine eindeutige ID"""
+    return uuid4().hex
+
+
+def parse_iso_date(value: str) -> date:
+    """Konvertiert 'JJJJ-MM-TT' in datetime.date. Löst einen ValueError aus,
+     wenn das Format ungültig ist."""
+    return datetime.strptime(value, "%Y-%m-%d").date()
+
+
+def format_iso_date(value: date) -> str:
+    """Konvertiert datetime.date in 'JJJJ-MM-TT' str """
+    return value.isoformat()
+
+
+def parse_bool(value: str) -> bool:
+    """Konvertiert string in bool """
+    return value.strip().lower() in {"1", "true", "yes", "y"}
+
+
+def format_bool(value: bool) -> str:
+    """Serialisiert bool in Text für CSV."""
+    return "true" if value else "false"
+
 @dataclass(frozen=True)
 class Habit:
     habit_id: str
