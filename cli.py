@@ -47,6 +47,25 @@ def normalize_period(raw: str) -> str:
     raise ValueError("Ungültiger Zeitraum. Verwende: daily/weekly (oder d/w).")
 
 
+def parse_frequency_for_period(period: str, raw: str) -> int:
+    """
+    Wandelt die Frequenz-Eingabe je nach Zeitraum in einen int um.
+    - daily  => immer 0 (auch wenn der Benutzer etwas eingibt)
+    - weekly => int >= 1
+    """
+    if period == "daily":
+        return 0
+
+    value = raw.strip()
+    if not value:
+        raise ValueError("Frequency ist für weekly-Habits erforderlich.")
+
+    freq = int(value)
+    if freq < 1:
+        raise ValueError("Frequency muss für weekly-Habits >= 1 sein.")
+    return freq
+
+
 def format_habit_line(habit: Habit) -> str:
     """
     Gibt eine gut lesbare Zeile zurück, um ein Habits auf dem Bildschirm anzuzeigen.
