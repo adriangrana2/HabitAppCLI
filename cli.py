@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from models import Habit, LogEntry
-from storage import ensure_storage, load_habits, load_logs, upsert_log
+from storage import ensure_storage, load_habits, load_logs, upsert_log, add_habit
 from stats import count_statuses
 
 
@@ -197,6 +197,8 @@ def prompt_frequency(period: str) -> int:
             print(str(e))
 
 
+
+
 def handle_list_habits(habits_path: Path) -> None:
     habits = load_habits(habits_path)
     active = [h for h in habits if h.active]
@@ -208,6 +210,30 @@ def handle_list_habits(habits_path: Path) -> None:
     print("\nAktive Habits:")
     for h in active:
         print(" - " + format_habit_line(h))
+
+
+def handle_create_habit(habits_path: Path) -> None:
+    print("\n=== Habit erstellen ===")
+
+    name = prompt_nonempty("Name: ")
+    habit_type = prompt_habit_type()
+    period = prompt_period()
+    freq = prompt_frequency(period)
+    start = prompt_start_date()
+
+    habit = Habit.create(
+        name=name,
+        type=habit_type,
+        period=period,
+        frequency=freq,
+        start_date=start,
+        active=True,
+    )
+
+    add_habit(habits_path, habit)
+
+    print("\n✅ Habit erstellt:")
+    print(" - " + format_habit_line(habit))
 
 
 def handle_checkin_today(habits_path: Path, logs_path: Path) -> None:
