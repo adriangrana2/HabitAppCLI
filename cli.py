@@ -13,6 +13,40 @@ from stats import count_statuses
 DATA_DIR = Path(__file__).resolve().parent / "data"
 
 
+def normalize_habit_type(raw: str) -> str:
+    """
+    Normalisiert die Benutzereingabe zu 'good' oder 'bad'.
+    Erlaubt Abkürzungen: g/b.
+    """
+    value = raw.strip().lower()
+    mapping = {
+        "g": "good",
+        "good": "good",
+        "b": "bad",
+        "bad": "bad",
+    }
+    if value in mapping:
+        return mapping[value]
+    raise ValueError("Ungültiger Typ. Verwende: good/bad (oder g/b).")
+
+
+def normalize_period(raw: str) -> str:
+    """
+    Normalisiert die Benutzereingabe zu 'daily' oder 'weekly'.
+    Erlaubt Abkürzungen: d/w.
+    """
+    value = raw.strip().lower()
+    mapping = {
+        "d": "daily",
+        "daily": "daily",
+        "w": "weekly",
+        "weekly": "weekly",
+    }
+    if value in mapping:
+        return mapping[value]
+    raise ValueError("Ungültiger Zeitraum. Verwende: daily/weekly (oder d/w).")
+
+
 def format_habit_line(habit: Habit) -> str:
     """
     Gibt eine gut lesbare Zeile zurück, um ein Habits auf dem Bildschirm anzuzeigen.
