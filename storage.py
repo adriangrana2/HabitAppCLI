@@ -90,3 +90,19 @@ def upsert_log(logs_path: Path, entry: LogEntry) -> None:
         logs.append(entry)
 
     save_logs(logs_path, logs)
+
+
+def add_habit(habits_path: Path, habit: Habit) -> None:
+    """
+    Fügt der CSV ein Habit hinzu.
+    - Lädt bestehende Habits
+    - Prüft, ob die habit_id bereits existiert (verhindert Duplikate)
+    - Fügt hinzu und speichert
+    """
+    habits = load_habits(habits_path)
+
+    if any(h.habit_id == habit.habit_id for h in habits):
+        raise ValueError(f"Es existiert bereits eine Gewohnheit mit habit_id={habit.habit_id}")
+
+    habits.append(habit)
+    save_habits(habits_path, habits)
