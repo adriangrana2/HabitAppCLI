@@ -64,3 +64,29 @@ def load_logs(logs_path: Path) -> List[LogEntry]:
 
 def save_logs(logs_path: Path, logs: Iterable[LogEntry]) -> None:
     _write_dict_rows(logs_path, LOGS_HEADER, (l.to_row() for l in logs))
+
+
+def upsert_log(logs_path: Path, entry: LogEntry) -> None:
+    """
+    Fügt einen Log-Eintrag ein oder aktualisiert ihn und stellt dabei die Eindeutigkeit nach (habit_id, date) sicher.
+
+    Regel:
+    - Wenn bereits ein Log-Eintrag mit derselben habit_id und demselben date existiert: wird NUR der status ersetzt,
+      wobei die ursprüngliche log_id beibehalten wird.
+    - Wenn keiner existiert: wird entry als neuer Eintrag hinzugefügt.
+    """
+    logs = load_logs(logs_path)
+
+    for i, existing in enumerate(logs):
+        if existing.habit_id == entry.habit_id and existing.date == entry.date:
+            logs[i] = LogEntry(
+                log_id=existing.log_id,
+                habit_id=existing.habit_id,
+                date=existing.date,
+                status=entry.status,
+            )
+            break
+    else:
+        logs.append(entry)
+
+    save_logs(logs_path, logs)
