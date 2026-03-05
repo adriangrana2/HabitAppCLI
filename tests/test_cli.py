@@ -2,7 +2,7 @@ import unittest
 from datetime import date
 
 from models import Habit
-from cli import format_habit_line
+from cli import format_habit_line, normalize_habit_type, normalize_period
 
 
 class TestCLI(unittest.TestCase):
@@ -31,6 +31,18 @@ class TestCLI(unittest.TestCase):
         self.assertIn("weekly", line)
         self.assertIn("freq=3/week", line)
 
+
+    def test_normalize_habit_type(self):
+        self.assertEqual(normalize_habit_type("g"), "good")
+        self.assertEqual(normalize_habit_type("BAD"), "bad")
+        with self.assertRaises(ValueError):
+            normalize_habit_type("x")
+
+    def test_normalize_period(self):
+        self.assertEqual(normalize_period("d"), "daily")
+        self.assertEqual(normalize_period("Weekly"), "weekly")
+        with self.assertRaises(ValueError):
+            normalize_period("month")
 
 if __name__ == "__main__":
     unittest.main()
