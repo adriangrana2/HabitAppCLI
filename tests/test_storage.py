@@ -1,8 +1,18 @@
 import csv
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
-from storage import ensure_storage, HABITS_HEADER, LOGS_HEADER
+from models import Habit, LogEntry
+from storage import (
+    ensure_storage,
+    HABITS_HEADER,
+    LOGS_HEADER,
+    load_habits,
+    save_habits,
+    load_logs,
+    upsert_log,
+)
 
 class TestStorage(unittest.TestCase):
     def setUp(self):
@@ -36,6 +46,53 @@ class TestStorage(unittest.TestCase):
 
         self.assertEqual(habits_rows, [])
         self.assertEqual(logs_rows, [])
+
+    def test_habits_roundtrip_save_and_load(self):
+        h1 = Habit.create(
+            name="Drink water",
+            type="good",
+            period="daily",
+            frequency=0,
+            start_date=date(2026, 3, 3),
+        )
+        h2 = Habit.create(
+            name="No sugar",
+            type="bad",
+            period="weekly",
+            frequency=3,
+            start_date=date(2026, 3, 3),
+        )
+
+        save_habits(self.habits_path, [h1, h2])
+        loaded = load_habits(self.habits_path)
+
+        self.assertEqual(loaded, [h1, h2])
+
+    def test_upsert_log_inserts_then_updates(self):
+        # Wir erstellen eine Gewohnheit und speichern sie (damit sie „in der Welt“ existiert)
+        h = Habit.create(
+            name="Read 10 min",
+            type="good",
+            period="daily",
+            frequency=0,
+            start_date=date(2026, 3, 3),
+        )
+        save_habits(self.habits_path, [h])
+
+        d = date(2026, 3, 3)
+
+        first = LogEntry.create(habit_id=h.habit_id, date_value=d, status="success")
+        upsert_log(self.logs_path, first)
+
+        second = LogEntry.create(habit_id=h.habit_id, date_value=d, status="fail")
+        upsert_log(self.logs_path, second)
+
+        logs = load_logs(self.logs_path)
+
+        self.assertEqual(len(logs), 1)
+        self.assertEqual(logs[0].habit_id, h.habit_id)
+        self.assertEqual(logs[0].date, d)
+        self.assertEqual(logs[0].status, "fail")
 
 
 if __name__ == "__main__":
