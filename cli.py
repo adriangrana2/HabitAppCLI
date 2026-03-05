@@ -84,7 +84,7 @@ def format_habit_line(habit: Habit) -> str:
 
 def print_menu() -> None:
     print("\n=== Habit Tracker (CLI + CSV) ===")
-    print("1) Habit anlegen (ausstehend)")
+    print("1) Habit anlegen")
     print("2) Habits anzeigen")
     print("3) Check-in (heute)")
     print("4) Check-in (Datum eingeben) (ausstehend)")
@@ -197,8 +197,6 @@ def prompt_frequency(period: str) -> int:
             print(str(e))
 
 
-
-
 def handle_list_habits(habits_path: Path) -> None:
     habits = load_habits(habits_path)
     active = [h for h in habits if h.active]
@@ -270,6 +268,10 @@ def main() -> None:
         if choice == "0":
             print("Bis bald!")
             return
+
+        if choice == "1":
+            handle_create_habit(habits_path)
+            continue
 
         if choice == "2":
             handle_list_habits(habits_path)
