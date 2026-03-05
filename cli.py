@@ -138,6 +138,65 @@ def prompt_status_for_habit(habit: Habit) -> str:
         print("Ungültige Eingabe. Bitte 's' oder 'n' eingeben.")
 
 
+def prompt_nonempty(prompt: str) -> str:
+    """Fordert Text an und stellt sicher, dass er nicht leer ist."""
+    while True:
+        value = input(prompt).strip()
+        if value:
+            return value
+        print("Darf nicht leer sein.")
+
+
+def prompt_habit_type() -> str:
+    """Fragt den Typ ab und normalisiert ihn mit normalize_habit_type()."""
+    while True:
+        raw = input("Typ (good/bad) [g/b]: ")
+        try:
+            return normalize_habit_type(raw)
+        except ValueError as e:
+            print(str(e))
+
+
+def prompt_period() -> str:
+    """Fragt den Zeitraum ab und normalisiert ihn mit normalize_period()."""
+    while True:
+        raw = input("Zeitraum (daily/weekly) [d/w]: ")
+        try:
+            return normalize_period(raw)
+        except ValueError as e:
+            print(str(e))
+
+
+def prompt_start_date() -> date:
+    """
+    Fragt start_date ab. Wenn der Nutzer leer lässt, verwenden wir der Einfachheit halber heute.
+    Wenn etwas eingegeben wird, muss es YYYY-MM-DD sein.
+    """
+    while True:
+        raw = input("Startdatum (YYYY-MM-DD) [Enter = heute]: ").strip()
+        if not raw:
+            return date.today()
+        try:
+            # Wir verwenden den Parser aus models (Konsistenz mit CSV)
+            from models import parse_iso_date
+            return parse_iso_date(raw)
+        except ValueError:
+            print("Ungültiges Datum. Erwartetes Format: YYYY-MM-DD.")
+
+
+def prompt_frequency(period: str) -> int:
+    """Fragt frequency nur ab, wenn period=weekly."""
+    if period == "daily":
+        return 0
+
+    while True:
+        raw = input("Häufigkeit pro Woche (Ganzzahl >= 1): ")
+        try:
+            return parse_frequency_for_period(period, raw)
+        except (ValueError, TypeError) as e:
+            print(str(e))
+
+
 def handle_list_habits(habits_path: Path) -> None:
     habits = load_habits(habits_path)
     active = [h for h in habits if h.active]
