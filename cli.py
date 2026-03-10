@@ -5,7 +5,14 @@ from pathlib import Path
 from typing import Optional
 
 from models import Habit, LogEntry, parse_iso_date
-from storage import ensure_storage, load_habits, load_logs, upsert_log, add_habit
+from storage import (
+    ensure_storage,
+    load_habits,
+    load_logs,
+    upsert_log,
+    add_habit,
+    set_habit_active
+)
 from stats import count_statuses, current_daily_streak
 
 
@@ -102,8 +109,8 @@ def print_menu() -> None:
     print("2) Habits anzeigen")
     print("3) Check-in (heute)")
     print("4) Check-in (Datum eingeben)")
-    print("5) Skip (heute) (ausstehend)")
-    print("6) Habit deaktivieren (ausstehend)")
+    print("5) Skip (heute)")
+    print("6) Habit deaktivieren")
     print("7) Statistiken anzeigen (ausstehend)")
     print("0) Beenden")
 
@@ -333,6 +340,40 @@ def handle_show_stats(habits_path: Path, logs_path: Path) -> None:
         print("Aktueller wöchentlicher Streak: noch zu implementieren.")
 
 
+def handle_skip_today(habits_path: Path, logs_path: Path) -> None:
+    habits = load_habits(habits_path)
+    habit = choose_habit_by_id(habits)
+    if habit is None:
+        return
+
+    today = date.today()
+
+    entry = LogEntry.create(habit_id=habit.habit_id, date_value=today, status="skip")
+    upsert_log(logs_path, entry)
+
+    logs = load_logs(logs_path)
+    counts = count_statuses(logs, habit.habit_id)
+
+    print("\n⏭️  Überspringen gespeichert.")
+    print(f"Datum: {today.isoformat()} | Status: skip")
+    print("Gesamtzahlen:")
+    print(f"  success: {counts['success']}")
+    print(f"  fail:    {counts['fail']}")
+    print(f"  skip:    {counts['skip']}")
+
+
+def handle_deactivate_habit(habits_path: Path) -> None:
+    habits = load_habits(habits_path)
+    habit = choose_habit_by_id(habits)  # nur aktive
+    if habit is None:
+        return
+
+    updated = set_habit_active(habits_path, habit.habit_id, False)
+
+    print("\n🚫 Habit deaktiviert:")
+    print(" - " + format_habit_line(updated))
+
+
 def main() -> None:
     habits_path, logs_path = ensure_storage(DATA_DIR)
 
@@ -358,6 +399,14 @@ def main() -> None:
 
         if choice == "4":
             handle_checkin_for_date(habits_path, logs_path)
+            continue
+
+        if choice == "5":
+            handle_skip_today(habits_path, logs_path)
+            continue
+
+        if choice == "6":
+            handle_deactivate_habit(habits_path)
             continue
 
         if choice == "7":
