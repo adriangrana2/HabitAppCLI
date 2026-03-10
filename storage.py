@@ -106,3 +106,32 @@ def add_habit(habits_path: Path, habit: Habit) -> None:
 
     habits.append(habit)
     save_habits(habits_path, habits)
+
+
+def set_habit_active(habits_path: Path, habit_id: str, active: bool) -> Habit:
+    """
+    Aktiviert oder deaktiviert eine Gewohnheit (und speichert die Änderung in habits.csv).
+
+    - Lädt alle Gewohnheiten
+    - Findet die Gewohnheit, die zu habit_id passt
+    - Erstellt eine Kopie mit aktualisiertem active-Wert (Habit ist unveränderlich/immutable)
+    - Speichert und gibt die aktualisierte Gewohnheit zurück
+    """
+    habits = load_habits(habits_path)
+
+    for i, h in enumerate(habits):
+        if h.habit_id == habit_id:
+            updated = Habit(
+                habit_id=h.habit_id,
+                name=h.name,
+                type=h.type,
+                period=h.period,
+                frequency=h.frequency,
+                start_date=h.start_date,
+                active=active,
+            )
+            habits[i] = updated
+            save_habits(habits_path, habits)
+            return updated
+
+    raise ValueError(f"Es existiert kein Habit mit habit_id={habit_id}")
