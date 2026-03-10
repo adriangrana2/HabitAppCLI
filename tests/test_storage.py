@@ -13,6 +13,7 @@ from storage import (
     load_logs,
     upsert_log,
     add_habit,
+    set_habit_active,
 )
 
 class TestStorage(unittest.TestCase):
@@ -108,6 +109,24 @@ class TestStorage(unittest.TestCase):
         loaded = load_habits(self.habits_path)
 
         self.assertEqual(loaded, [h])
+
+    def test_set_habit_active_deactivates(self):
+        h = Habit.create(
+            name="Meditate",
+            type="good",
+            period="daily",
+            frequency=0,
+            start_date=date(2026, 3, 3),
+        )
+        add_habit(self.habits_path, h)
+
+        updated = set_habit_active(self.habits_path, h.habit_id, False)
+        self.assertFalse(updated.active)
+
+        loaded = load_habits(self.habits_path)
+        self.assertEqual(len(loaded), 1)
+        self.assertFalse(loaded[0].active)
+        self.assertEqual(loaded[0].habit_id, h.habit_id)
 
 
 if __name__ == "__main__":
