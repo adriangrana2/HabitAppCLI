@@ -2,7 +2,13 @@ import unittest
 from datetime import date
 
 from models import Habit
-from cli import format_habit_line, normalize_habit_type, normalize_period, parse_frequency_for_period
+from cli import (
+    format_habit_line,
+    normalize_habit_type,
+    normalize_period,
+    parse_frequency_for_period,
+    parse_date_or_today,
+)
 
 
 class TestCLI(unittest.TestCase):
@@ -51,6 +57,19 @@ class TestCLI(unittest.TestCase):
             parse_frequency_for_period("weekly", "")
         with self.assertRaises(ValueError):
             parse_frequency_for_period("weekly", "0")
+
+    def test_parse_date_or_today_empty_returns_today(self):
+        fake_today = date(2026, 3, 5)
+        result = parse_date_or_today("", today_value=fake_today)
+        self.assertEqual(result, fake_today)
+
+    def test_parse_date_or_today_parses_iso_date(self):
+        result = parse_date_or_today("2026-03-01", today_value=date(2026, 3, 5))
+        self.assertEqual(result, date(2026, 3, 1))
+
+    def test_parse_date_or_today_invalid_raises(self):
+        with self.assertRaises(ValueError):
+            parse_date_or_today("03/01/2026", today_value=date(2026, 3, 5))
 
 if __name__ == "__main__":
     unittest.main()
