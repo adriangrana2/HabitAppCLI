@@ -2,7 +2,7 @@ import unittest
 from datetime import date
 
 from models import LogEntry
-from stats import count_statuses
+from stats import count_statuses, current_daily_streak
 
 
 class TestStats(unittest.TestCase):
@@ -23,6 +23,47 @@ class TestStats(unittest.TestCase):
         self.assertEqual(result["fail"], 1)
         self.assertEqual(result["skip"], 1)
 
+    def test_current_daily_streak_all_successes(self):
+        habit_id = "H1"
+
+        logs = [
+            LogEntry(log_id="1", habit_id=habit_id, date=date(2026, 3, 1), status="success"),
+            LogEntry(log_id="2", habit_id=habit_id, date=date(2026, 3, 2), status="success"),
+            LogEntry(log_id="3", habit_id=habit_id, date=date(2026, 3, 3), status="success"),
+        ]
+
+        self.assertEqual(current_daily_streak(logs, habit_id), 3)
+
+    def test_current_daily_streak_latest_fail_means_zero(self):
+        habit_id = "H1"
+
+        logs = [
+            LogEntry(log_id="1", habit_id=habit_id, date=date(2026, 3, 1), status="success"),
+            LogEntry(log_id="2", habit_id=habit_id, date=date(2026, 3, 2), status="success"),
+            LogEntry(log_id="3", habit_id=habit_id, date=date(2026, 3, 3), status="fail"),
+        ]
+
+        self.assertEqual(current_daily_streak(logs, habit_id), 0)
+
+    def test_current_daily_streak_missing_day_breaks_streak(self):
+        habit_id = "H1"
+
+        logs = [
+            LogEntry(log_id="1", habit_id=habit_id, date=date(2026, 3, 1), status="success"),
+            LogEntry(log_id="2", habit_id=habit_id, date=date(2026, 3, 3), status="success"),
+        ]
+
+        self.assertEqual(current_daily_streak(logs, habit_id), 1)
+
+    def test_current_daily_streak_skip_breaks_streak(self):
+        habit_id = "H1"
+
+        logs = [
+            LogEntry(log_id="1", habit_id=habit_id, date=date(2026, 3, 1), status="success"),
+            LogEntry(log_id="2", habit_id=habit_id, date=date(2026, 3, 2), status="skip"),
+        ]
+
+        self.assertEqual(current_daily_streak(logs, habit_id), 0)
 
 if __name__ == "__main__":
     unittest.main()
