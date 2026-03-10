@@ -4,9 +4,9 @@ from datetime import date
 from pathlib import Path
 from typing import Optional
 
-from models import Habit, LogEntry
+from models import Habit, LogEntry, parse_iso_date
 from storage import ensure_storage, load_habits, load_logs, upsert_log, add_habit
-from stats import count_statuses
+from stats import count_statuses, current_daily_streak
 
 
 # Wir verwenden einen stabilen Pfad: den Ordner data/ innerhalb des Pakets HabitAppCLI.
@@ -65,6 +65,20 @@ def parse_frequency_for_period(period: str, raw: str) -> int:
         raise ValueError("Frequency muss für weekly-Habits >= 1 sein.")
     return freq
 
+def parse_date_or_today(raw: str, today_value: date | None = None) -> date:
+    """
+    Wenn raw leer ist, gib das heutige Datum zurück.
+    Wenn raw Text enthält, muss er im Format YYYY-MM-DD sein.
+    """
+    if today_value is None:
+        today_value = date.today()
+
+    value = raw.strip()
+    if not value:
+        return today_value
+
+    return parse_iso_date(value)
+
 
 def format_habit_line(habit: Habit) -> str:
     """
@@ -87,7 +101,7 @@ def print_menu() -> None:
     print("1) Habit anlegen")
     print("2) Habits anzeigen")
     print("3) Check-in (heute)")
-    print("4) Check-in (Datum eingeben) (ausstehend)")
+    print("4) Check-in (Datum eingeben)")
     print("5) Skip (heute) (ausstehend)")
     print("6) Habit deaktivieren (ausstehend)")
     print("7) Statistiken anzeigen (ausstehend)")
@@ -170,18 +184,27 @@ def prompt_period() -> str:
 def prompt_start_date() -> date:
     """
     Fragt start_date ab. Wenn der Nutzer leer lässt, verwenden wir der Einfachheit halber heute.
-    Wenn etwas eingegeben wird, muss es YYYY-MM-DD sein.
+    Wenn etwas eingegeben wird, muss es JJJJ-MM-TT sein.
     """
     while True:
-        raw = input("Startdatum (YYYY-MM-DD) [Enter = heute]: ").strip()
-        if not raw:
-            return date.today()
+        raw = input("Startdatum (JJJJ-MM-TT) [Enter = heute]: ").strip()
         try:
-            # Wir verwenden den Parser aus models (Konsistenz mit CSV)
-            from models import parse_iso_date
-            return parse_iso_date(raw)
+            return parse_date_or_today(raw)
         except ValueError:
-            print("Ungültiges Datum. Erwartetes Format: YYYY-MM-DD.")
+            print("Ungültiges Datum. Erwartetes Format: JJJJ-MM-TT.")
+
+
+def prompt_log_date() -> date:
+    """
+    Fragt das Datum für einen Log-Eintrag ab.
+    Leere Eingabe = heute.
+    """
+    while True:
+        raw = input("Log-Datum (JJJJ-MM-TT) [Enter = heute]: ").strip()
+        try:
+            return parse_date_or_today(raw)
+        except ValueError:
+            print("Ungültiges Datum. Erwartetes Format: JJJJ-MM-TT.")
 
 
 def prompt_frequency(period: str) -> int:
@@ -258,6 +281,58 @@ def handle_checkin_today(habits_path: Path, logs_path: Path) -> None:
     print(f"  skip:    {counts['skip']}")
 
 
+def handle_checkin_for_date(habits_path: Path, logs_path: Path) -> None:
+    habits = load_habits(habits_path)
+    habit = choose_habit_by_id(habits)
+    if habit is None:
+        return
+
+    try:
+        chosen_date = prompt_log_date()
+    except ValueError:
+        print("Ungültiges Datum. Erwartetes Format: JJJJ-MM-TT.")
+        return
+
+    status = prompt_status_for_habit(habit)
+
+    entry = LogEntry.create(habit_id=habit.habit_id, date_value=chosen_date, status=status)
+    upsert_log(logs_path, entry)
+
+    logs = load_logs(logs_path)
+    counts = count_statuses(logs, habit.habit_id)
+
+    print("\n✅ Check-in gespeichert.")
+    print(f"Datum: {chosen_date.isoformat()} | Status: {status}")
+    print("Gesamt:")
+    print(f"  Erfolg:        {counts['success']}")
+    print(f"  Fehlgeschlagen:{counts['fail']}")
+    print(f"  Übersprungen:  {counts['skip']}")
+
+
+def handle_show_stats(habits_path: Path, logs_path: Path) -> None:
+    habits = load_habits(habits_path)
+    habit = choose_habit_by_id(habits)
+    if habit is None:
+        return
+
+    logs = load_logs(logs_path)
+    counts = count_statuses(logs, habit.habit_id)
+
+    print("\n=== Statistiken ===")
+    print("Gewohnheit:")
+    print(" - " + format_habit_line(habit))
+    print("Gesamt:")
+    print(f"  Erfolg: {counts['success']}")
+    print(f"  Fehl:   {counts['fail']}")
+    print(f"  Übersprungen: {counts['skip']}")
+
+    if habit.period == "daily":
+        streak = current_daily_streak(logs, habit.habit_id)
+        print(f"Aktueller täglicher Streak: {streak}")
+    else:
+        print("Aktueller wöchentlicher Streak: noch zu implementieren.")
+
+
 def main() -> None:
     habits_path, logs_path = ensure_storage(DATA_DIR)
 
@@ -281,7 +356,15 @@ def main() -> None:
             handle_checkin_today(habits_path, logs_path)
             continue
 
-        print("Option 2 wird implementiert.")
+        if choice == "4":
+            handle_checkin_for_date(habits_path, logs_path)
+            continue
+
+        if choice == "7":
+            handle_show_stats(habits_path, logs_path)
+            continue
+
+        print("Option wird implementiert.")
 
 
 if __name__ == "__main__":
